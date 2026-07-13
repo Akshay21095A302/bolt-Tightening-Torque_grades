@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolt Torque Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1215;--bg-2:#14181d;--panel:#1a1f26;--panel-2:#20262e;
+    --line:#2b323b;--line-2:#3a434e;--ink:#e7ecf1;--muted:#8b96a3;--dim:#5f6a76;
+    --amber:#f5b301;--amber-dim:#c8930a;--steel:#5fbdc4;--red:#e8604c;--green:#57c98a;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;--sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--sans);
+    background:radial-gradient(1200px 600px at 80% -10%, #1a2028 0%, transparent 60%),var(--bg);
+    color:var(--ink);min-height:100vh;padding:clamp(16px,4vw,44px);line-height:1.45;}
+  .wrap{max-width:1040px;margin:0 auto}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    padding-bottom:18px;margin-bottom:26px;border-bottom:1px solid var(--line);}
+  .title-block h1{font-size:clamp(19px,3.4vw,26px);font-weight:700;letter-spacing:-.01em;line-height:1.1}
+  .title-block .std{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:8px;transition:color .2s}
+  .title-block .std::before{content:"";width:22px;height:2px;background:currentColor}
+  .title-block p{color:var(--muted);font-size:13px;margin-top:6px;max-width:48ch}
+  .stamp{font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--dim);text-align:right;letter-spacing:.04em;white-space:nowrap}
+  .stamp b{color:var(--muted);font-weight:500}
+  .grid{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel) 0%, var(--bg-2) 100%);border:1px solid var(--line);border-radius:12px}
+  .card-h{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:14px 18px 0}
+  .controls{padding:16px 18px 20px}
+  .field{margin-top:16px}.field:first-child{margin-top:14px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:.02em}
+  select,.k-input{width:100%;font-family:var(--mono);font-size:15px;font-weight:500;color:var(--ink);
+    background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:11px 13px;
+    appearance:none;-webkit-appearance:none;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+  select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%238b96a3' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+  select:focus,.k-input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,179,1,.14)}
+  optgroup{font-family:var(--sans);color:var(--dim);font-style:normal}
+  option{color:var(--ink);background:var(--panel-2)}
+  .k-preset{display:grid;gap:6px;margin-bottom:8px}
+  .k-preset button{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line-2);border-radius:7px;padding:9px 4px;cursor:pointer;transition:all .13s;line-height:1.25}
+  .k-preset button .kv{display:block;color:var(--dim);font-size:10.5px;margin-top:2px}
+  .k-preset button:hover{color:var(--ink)}
+  .k-preset button.active{border-color:var(--amber);color:var(--amber);background:rgba(245,179,1,.08)}
+  .k-preset button.active .kv{color:var(--amber-dim)}
+  .k-wrap{position:relative}
+  .k-wrap .k-tag{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);
+    font-size:10px;letter-spacing:.1em;color:var(--dim);pointer-events:none;text-transform:uppercase}
+  .readout{padding:22px 24px 24px;position:relative;overflow:hidden}
+  .readout::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(420px 180px at 78% 0%, rgba(245,179,1,.06), transparent 70%)}
+  .readout-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .readout-label{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .cond-badge{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.05em;color:var(--amber);
+    border:1px solid rgba(245,179,1,.3);background:rgba(245,179,1,.07);border-radius:20px;padding:4px 12px}
+  .torque{display:flex;align-items:baseline;gap:12px;margin:6px 0 4px}
+  .torque .val{font-family:var(--mono);font-weight:600;font-size:clamp(52px,12vw,86px);line-height:.95;
+    letter-spacing:-.02em;color:var(--amber);text-shadow:0 0 30px rgba(245,179,1,.22);font-variant-numeric:tabular-nums}
+  .torque .unit{font-family:var(--mono);font-size:20px;color:var(--muted);font-weight:500}
+  .formula{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:12px;padding-top:14px;
+    border-top:1px solid var(--line);letter-spacing:.01em}
+  .formula b{color:var(--steel);font-weight:500}.formula .op{color:var(--dim)}
+  .specs{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media(max-width:520px){.specs{grid-template-columns:repeat(2,1fr)}}
+  .spec{background:var(--bg-2);padding:16px 18px}
+  .spec .lab{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--dim);line-height:1.4}
+  .spec .lab em{font-style:normal;color:var(--dim);opacity:.8;display:block;margin-top:2px}
+  .spec .num{font-family:var(--mono);font-size:22px;font-weight:600;margin-top:8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .spec .num small{font-size:12px;color:var(--muted);font-weight:400;margin-left:3px}
+  .spec.hl .num{color:var(--steel)}
+  .compare{padding:16px 18px}
+  .compare-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:11px 4px;border-top:1px solid var(--line)}
+  .compare-row:first-of-type{border-top:none}
+  .compare-row .cname{font-size:13px;font-weight:500}
+  .compare-row .cname span{font-family:var(--mono);color:var(--dim);font-size:11px;margin-left:8px}
+  .compare-row .cbar{width:clamp(70px,22vw,150px);height:6px;background:var(--panel-2);border-radius:4px;overflow:hidden;justify-self:end}
+  .compare-row .cbar i{display:block;height:100%;background:var(--steel);border-radius:4px}
+  .compare-row .cval{font-family:var(--mono);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+  .compare-row.is-sel .cname{color:var(--amber)}.compare-row.is-sel .cbar i{background:var(--amber)}.compare-row.is-sel .cval{color:var(--amber)}
+  .notes{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--bg-2);padding:18px 20px}
+  .notes h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+  .notes ul{list-style:none;display:grid;gap:10px}
+  .notes li{font-size:12.5px;color:var(--muted);padding-left:18px;position:relative;line-height:1.5}
+  .notes li::before{content:"";position:absolute;left:0;top:7px;width:5px;height:5px;background:var(--line-2);border-radius:1px}
+  .notes li b{color:var(--ink);font-weight:600}
+  .notes code{font-family:var(--mono);font-size:11.5px;color:var(--steel);background:var(--panel-2);padding:1px 6px;border-radius:4px}
+  .warn::before{background:var(--red)!important}.warn b{color:var(--red)}
+  .live::before{background:var(--amber)!important}.live b{color:var(--amber)}
+  .reqcard{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,var(--panel) 0%,var(--bg-2) 100%);padding:20px 22px}
+  .reqcard h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+  .reqcard .sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;max-width:54ch}
+  .reqgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.reqgrid{grid-template-columns:1fr}}
+  .reqfield{display:flex;flex-direction:column}.reqfield.full{grid-column:1/-1}
+  .reqfield label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+  .reqfield input,.reqfield textarea{font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--panel-2);
+    border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;width:100%;transition:border-color .15s,box-shadow .15s}
+  .reqfield textarea{resize:vertical;min-height:64px}
+  .reqfield input:focus,.reqfield textarea:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,179,1,.14)}
+  .reqfield input::placeholder,.reqfield textarea::placeholder{color:var(--dim)}
+  .reqbtn{margin-top:14px;display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;font-weight:600;
+    color:#1a1205;background:var(--amber);border:none;border-radius:8px;padding:11px 20px;cursor:pointer;transition:filter .15s,transform .05s}
+  .reqbtn:hover{filter:brightness(1.08)}.reqbtn:active{transform:translateY(1px)}.reqbtn:disabled{opacity:.6;cursor:default}
+  .reqmsg{margin-top:12px;font-size:13px;font-weight:500;display:none}
+  .reqmsg.ok{display:block;color:var(--green)}.reqmsg.err{display:block;color:var(--red)}
+  .foot{margin-top:22px;font-family:var(--mono);font-size:10.5px;color:var(--dim);text-align:center;letter-spacing:.03em;line-height:1.7}
+  select:focus-visible,button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <div class="std" id="stdEyebrow">ISO 898-1 · Carbon steel</div>
+      <h1>Bolt Torque Calculator</h1>
+      <p>Tightening torque from minimum proof or yield strength — carbon steel (ISO 898-1) and stainless steel (ISO 3506).</p>
+    </div>
+    <div class="stamp">
+      <div><b>T</b> = K · D · F</div>
+      <div id="stampBasis">F = 0.75 × proof</div>
+      <div id="stampSel">—</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-h">Inputs</div>
+      <div class="controls">
+        <div class="field">
+          <label for="grade">Grade / property class</label>
+          <select id="grade"></select>
+        </div>
+        <div class="field">
+          <label for="dia">Nominal diameter</label>
+          <select id="dia"></select>
+        </div>
+        <div class="field">
+          <label>Friction condition · K</label>
+          <div class="k-preset" id="kPreset"></div>
+          <div class="k-wrap">
+            <input class="k-input" id="kInput" type="number" step="0.01" min="0.05" max="0.5" value="0.13" aria-label="K factor" inputmode="decimal">
+            <span class="k-tag">custom</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="readout">
+        <div class="readout-top">
+          <div class="readout-label">Tightening torque</div>
+          <div class="cond-badge" id="condBadge">—</div>
+        </div>
+        <div class="torque"><span class="val" id="torqueVal">—</span><span class="unit">N·m</span></div>
+        <div class="formula" id="formula">—</div>
+      </div>
+      <div class="specs">
+        <div class="spec"><div class="lab">Min tensile</div><div class="num" id="sTensile">—<small>N</small></div></div>
+        <div class="spec"><div class="lab" id="labStrength">Min proof</div><div class="num" id="sProof">—<small>N</small></div></div>
+        <div class="spec hl"><div class="lab">Clamp load F <em id="clampBasis">75% proof</em></div><div class="num" id="sClamp">—<small>N</small></div></div>
+        <div class="spec"><div class="lab">Thread pitch</div><div class="num" id="sPitch">—<small>mm</small></div></div>
+      </div>
+      <div class="card-h" style="padding:16px 18px 0">Standard conditions</div>
+      <div class="compare" id="compare"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>Notes &amp; assumptions</h3>
+    <ul id="notesList"></ul>
+  </div>
+  <div class="reqcard">
+    <h3>Request another grade</h3>
+    <p class="sub">Need a class or size that isn't listed? Type it below and send — it comes straight to my email.</p>
+    <div class="reqgrid">
+      <div class="reqfield">
+        <label for="rqGrade">Grade / class needed *</label>
+        <input id="rqGrade" type="text" placeholder="e.g. 5.8, A4-80, ASTM A325">
+      </div>
+      <div class="reqfield">
+        <label for="rqEmail">Your email (so I can reply)</label>
+        <input id="rqEmail" type="email" placeholder="you@example.com">
+      </div>
+      <div class="reqfield full">
+        <label for="rqDetails">Details — sizes, standard, anything else</label>
+        <textarea id="rqDetails" placeholder="e.g. M6 to M24, need both dry and lubricated torque"></textarea>
+      </div>
+    </div>
+    <button class="reqbtn" id="rqSend">Send request</button>
+    <div class="reqmsg" id="rqStatus"></div>
+  </div>
+
+  <div class="foot">Minimum values · torque computed live from T = K·D·F · reference only</div>
+</div>
+
+<script>
+/* ============================================================
+   EMAIL SETUP — edit these TWO lines, nothing else:
+   1) FORM_ENDPOINT: sign up free at https://formspree.io, create a
+      form, and paste its endpoint here (looks like the example below).
+   2) OWNER_EMAIL: your email — used as a fallback if Formspree isn't set.
+   ============================================================ */
+const FORM_ENDPOINT = "https://formspree.io/f/YOUR_FORM_ID";
+const OWNER_EMAIL   = "your-email@example.com";
+/* ============================================================ */
+
+/* rows: [pitch, minTensileN, strengthN]  (strength = proof for carbon, yield for stainless) */
+const GRADES = {
+  "4.6":{label:"Class 4.6",eyebrow:"ISO 898-1 · Carbon steel",material:"carbon",strengthName:"proof",customBasis:0.75,
+    conds:[{name:"Ecoguard",k:0.13,basis:0.75},{name:"Lubricated",k:0.15,basis:0.75},{name:"Dry",k:0.20,basis:0.75}],
+    rows:{5:[0.8,5680,3195],6:[1,8040,4523],8:[1.25,14640,8235],10:[1.5,23200,13050],12:[1.75,33720,18968],14:[2,46000,25875],16:[2,62800,35325],18:[2.5,76800,43200],20:[2.5,98000,55125],22:[2.5,121200,68175],24:[3,141200,79425],27:[3,183600,103275],30:[3.5,224400,126225],33:[3.5,277600,156150],36:[4,326800,183825],39:[4,390400,219600]}},
+  "8.8":{label:"Class 8.8",eyebrow:"ISO 898-1 · Carbon steel",material:"carbon",strengthName:"proof",customBasis:0.75,
+    conds:[{name:"Ecoguard",k:0.13,basis:0.75},{name:"Lubricated",k:0.15,basis:0.75},{name:"Dry",k:0.20,basis:0.75}],
+    rows:{5:[0.8,11360,8236],6:[1,16080,11658],8:[1.25,29280,21228],10:[1.5,46400,33640],12:[1.75,67440,48894],14:[2,92000,66700],16:[2,125600,91060],18:[2.5,159360,115200],20:[2.5,203350,147000],22:[2.5,251490,181800],24:[3,292990,211800],27:[3,380970,275400],30:[3.5,465630,336600],33:[3.5,576020,416400],36:[4,678110,490200],39:[4,810080,585600]}},
+  "10.9":{label:"Class 10.9",eyebrow:"ISO 898-1 · Carbon steel",material:"carbon",strengthName:"proof",customBasis:0.75,
+    conds:[{name:"Ecoguard",k:0.13,basis:0.75},{name:"Lubricated",k:0.15,basis:0.75},{name:"Dry",k:0.20,basis:0.75}],
+    rows:{5:[0.8,14768,11786],6:[1,20904,16683],8:[1.25,38064,30378],10:[1.5,60320,48140],12:[1.75,87672,69969],14:[2,119600,95450],16:[2,163280,130310],18:[2.5,199680,159360],20:[2.5,254800,203350],22:[2.5,315120,251490],24:[3,367120,292990],27:[3,477360,380970],30:[3.5,583440,465630],33:[3.5,721760,576020],36:[4,849680,678110],39:[4,1015040,810080]}},
+  "12.9":{label:"Class 12.9",eyebrow:"ISO 898-1 · Carbon steel",material:"carbon",strengthName:"proof",customBasis:0.75,
+    conds:[{name:"Ecoguard",k:0.13,basis:0.75},{name:"Lubricated",k:0.15,basis:0.75},{name:"Dry",k:0.20,basis:0.75}],
+    rows:{5:[0.8,17324,13774],6:[1,24522,19497],8:[1.25,44652,35502],10:[1.5,70760,56260],12:[1.75,102846,81771],14:[2,140300,111550],16:[2,191540,152290],18:[2.5,234240,186240],20:[2.5,298900,237650],22:[2.5,369660,293910],24:[3,430660,342410],27:[3,559980,445230],30:[3.5,684420,544170],33:[3.5,846680,673180],36:[4,996740,792490],39:[4,1190720,946720]}},
+  "A2-70":{label:"A2-70 / A4-70",eyebrow:"ISO 3506 · Stainless steel",material:"stainless",strengthName:"yield",customBasis:0.75,
+    conds:[{name:"Lubricated",k:0.16,basis:0.75},{name:"Dry",k:0.35,basis:0.40}],
+    rows:{3:[0.5,3522,2264],4:[0.7,6145,3950],5:[0.8,9928,6382],6:[1,14086,9056],8:[1.25,25626,16474],10:[1.5,40593,26095],12:[1.75,58987,37920],14:[2,80808,51948],16:[2,109668,70501],18:[2.5,134731,86613],20:[2.5,171356,110158],22:[2.5,212380,136530],24:[3,246753,158627],27:[3,321585,206733],30:[3.5,392411,252264],33:[3.5,485488,312099],36:[4,571706,367525]}}
+};
+
+const $ = id => document.getElementById(id);
+const gradeSel=$("grade"), diaSel=$("dia"), kInput=$("kInput"), kPreset=$("kPreset");
+let state = { grade:"8.8", dia:12, k:0.13, condName:"Ecoguard", basis:0.75, isCustom:false };
+
+/* grade dropdown with optgroups */
+(function(){
+  const carbon=document.createElement("optgroup");carbon.label="Carbon steel · ISO 898-1";
+  const ss=document.createElement("optgroup");ss.label="Stainless steel · ISO 3506";
+  Object.keys(GRADES).forEach(g=>{
+    const o=document.createElement("option");o.value=g;o.textContent=GRADES[g].label;
+    if(g===state.grade)o.selected=true;
+    (GRADES[g].material==="stainless"?ss:carbon).appendChild(o);
+  });
+  gradeSel.appendChild(carbon);gradeSel.appendChild(ss);
+})();
+
+function fillDia(){
+  const G=GRADES[state.grade];const dias=Object.keys(G.rows).map(Number).sort((a,b)=>a-b);
+  if(!dias.includes(state.dia)) state.dia = dias.includes(12)?12:dias[0];
+  diaSel.innerHTML="";
+  dias.forEach(d=>{
+    const o=document.createElement("option");o.value=d;o.textContent="M"+d+"  ×  "+G.rows[d][0]+" mm";
+    if(d===state.dia)o.selected=true;diaSel.appendChild(o);
+  });
+}
+function buildPresets(){
+  const G=GRADES[state.grade];
+  kPreset.style.gridTemplateColumns="repeat("+G.conds.length+",1fr)";
+  kPreset.innerHTML=G.conds.map(c=>
+    `<button data-k="${c.k}" data-name="${c.name}" data-basis="${c.basis}">${c.name}<span class="kv">K ${c.k.toFixed(2)}</span></button>`).join("");
+}
+function applyCond(c){ state.k=c.k;state.condName=c.name;state.basis=c.basis;state.isCustom=false;kInput.value=c.k.toFixed(2); }
+
+const torque=(k,d,F)=>k*(d/1000)*F;
+const fmtT=v=>v>=100?Math.round(v).toLocaleString():v.toFixed(v>=10?1:2);
+const fmtN=v=>Math.round(v).toLocaleString();
+
+function render(){
+  const G=GRADES[state.grade];const row=G.rows[state.dia];const [pitch,tensile,strength]=row;
+  const clamp=state.basis*strength;
+  const T=torque(state.k,state.dia,clamp);
+  const basisTxt=Math.round(state.basis*100)+"% "+G.strengthName;
+
+  $("stdEyebrow").textContent=G.eyebrow;
+  $("stdEyebrow").style.color = G.material==="stainless" ? "var(--steel)" : "var(--amber)";
+  $("torqueVal").textContent=fmtT(T);
+  $("condBadge").textContent=(state.isCustom?"Custom":state.condName)+" · K "+(+state.k).toFixed(2);
+  $("stampSel").innerHTML="<b>"+G.label+" · M"+state.dia+"</b>";
+  $("stampBasis").textContent="F = "+state.basis.toFixed(2)+" × "+G.strengthName;
+  $("formula").innerHTML="T = <b>"+(+state.k).toFixed(2)+"</b> <span class='op'>×</span> <b>"+state.dia+" mm</b> <span class='op'>×</span> <b>"+fmtN(clamp)+" N</b> <span class='op'>=</span> "+fmtT(T)+" N·m";
+
+  $("labStrength").textContent="Min "+G.strengthName;
+  $("clampBasis").textContent=basisTxt;
+  $("sTensile").innerHTML=fmtN(tensile)+"<small>N</small>";
+  $("sProof").innerHTML=fmtN(strength)+"<small>N</small>";
+  $("sClamp").innerHTML=fmtN(clamp)+"<small>N</small>";
+  $("sPitch").innerHTML=pitch+"<small>mm</small>";
+
+  const vals=G.conds.map(c=>({...c,t:torque(c.k,state.dia,c.basis*strength)}));
+  const max=Math.max(...vals.map(v=>v.t));
+  $("compare").innerHTML=vals.map(v=>{
+    const sel=!state.isCustom && v.name===state.condName;
+    const bTxt=G.material==="stainless"?" · "+Math.round(v.basis*100)+"% yield":"";
+    return `<div class="compare-row ${sel?'is-sel':''}">
+      <div class="cname">${v.name}<span>K ${v.k.toFixed(2)}${bTxt}</span></div>
+      <div class="cbar"><i style="width:${(v.t/max*100).toFixed(1)}%"></i></div>
+      <div class="cval">${fmtT(v.t)}</div></div>`;
+  }).join("");
+
+  [...kPreset.children].forEach(b=>{
+    b.classList.toggle("active", !state.isCustom && b.dataset.name===state.condName && Math.abs(+b.dataset.k-state.k)<1e-9);
+  });
+
+  renderNotes(G,basisTxt);
+}
+
+function renderNotes(G,basisTxt){
+  const common=[
+    {c:"warn",h:"Nut strength governs.",t:" Torques are only achievable if the nut or tapped hole has a proof load ≥ the bolt's minimum ultimate tensile strength — otherwise the threads strip first."},
+    {c:"",h:"Formula.",t:" <code>T = K·D·F</code> — D is nominal diameter, F is the clamp load."},
+    {c:"",h:"Reference only.",t:" Minimum standard values. Verify against your fastener supplier and joint design before assembly."},
+  ];
+  let mat;
+  if(G.material==="carbon"){
+    mat=[
+      {c:"live",h:"Active basis.",t:" Clamp load F = <b>"+basisTxt+"</b>, K presets 0.13 Ecoguard / 0.15 lubricated / 0.20 dry."},
+      {c:"",h:"Custom K.",t:" For zinc-plated (wax) top-lock nuts, K runs <code>0.12–0.16</code> — type a custom K (uses 75% proof)."},
+    ];
+  } else {
+    mat=[
+      {c:"live",h:"Active basis.",t:" Clamp load F = <b>"+basisTxt+"</b> for the selected condition."},
+      {c:"warn",h:"Galling.",t:" Dry stainless uses only <b>40% of yield</b> for clamp load to avoid galling/thread seizure; lubricated uses <b>75% of yield</b>."},
+      {c:"",h:"K values.",t:" Stainless K = <code>0.16</code> lubricated, <code>0.35</code> dry. A2-70 and A4-70 share the same strength values (different corrosion grades). Custom K uses the 75%-yield (lubricated) basis."},
+    ];
+  }
+  $("notesList").innerHTML=[mat[0],...common,...mat.slice(1)]
+    .map(n=>`<li class="${n.c}"><b>${n.h}</b>${n.t}</li>`).join("");
+}
+
+gradeSel.addEventListener("change",e=>{
+  state.grade=e.target.value;fillDia();buildPresets();applyCond(GRADES[state.grade].conds[0]);render();
+});
+diaSel.addEventListener("change",e=>{state.dia=+e.target.value;render();});
+kPreset.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  applyCond({name:b.dataset.name,k:+b.dataset.k,basis:+b.dataset.basis});render();
+});
+kInput.addEventListener("input",e=>{
+  const v=parseFloat(e.target.value);if(isNaN(v))return;
+  const G=GRADES[state.grade];
+  const match=G.conds.find(c=>Math.abs(c.k-v)<1e-9);
+  if(match){applyCond(match);} else {state.k=v;state.isCustom=true;state.condName="Custom";state.basis=G.customBasis;}
+  render();
+});
+
+/* ---- request another grade -> owner's email ---- */
+(function(){
+  const btn=$("rqSend"),status=$("rqStatus");
+  const set=(m,c)=>{status.className="reqmsg "+c;status.textContent=m;};
+  function mailto(grade,email,msg){
+    const body="Grade / class needed: "+grade+"\nRequester email: "+(email||"(not given)")+"\n\nDetails:\n"+(msg||"(none)");
+    window.location.href="mailto:"+OWNER_EMAIL+"?subject="+encodeURIComponent("Bolt grade request: "+grade)+"&body="+encodeURIComponent(body);
+  }
+  btn.addEventListener("click",async ()=>{
+    const grade=$("rqGrade").value.trim(),email=$("rqEmail").value.trim(),msg=$("rqDetails").value.trim();
+    if(!grade){set("Please enter the grade or class you need.","err");return;}
+    if(FORM_ENDPOINT.indexOf("YOUR_FORM_ID")>-1){ set("Opening your email app to send…","ok"); mailto(grade,email,msg); return; }
+    btn.disabled=true;set("Sending…","ok");
+    try{
+      const r=await fetch(FORM_ENDPOINT,{method:"POST",
+        headers:{"Accept":"application/json","Content-Type":"application/json"},
+        body:JSON.stringify({grade,email,message:msg,_subject:"Bolt grade request: "+grade,_replyto:email})});
+      if(r.ok){set("Thanks — your request was sent.","ok");$("rqGrade").value="";$("rqEmail").value="";$("rqDetails").value="";}
+      else{set("Opening your email app to send…","ok");mailto(grade,email,msg);}
+    }catch(e){ set("Opening your email app to send…","ok"); mailto(grade,email,msg); }
+    btn.disabled=false;
+  });
+})();
+
+/* init */
+fillDia();buildPresets();applyCond(GRADES[state.grade].conds[0]);render();
+</script>
+</body>
+</html>
